@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>实用网站检索</title>
+    <!-- 标签页头像 -->
+    <link rel="icon" type="image/jpeg" href="touxiang.jpg">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, 'Segoe UI', 'Helvetica Neue', sans-serif;
+        }
+
+        /* 让整个body内容在视口中垂直水平居中 */
+        body {
+            background: url('beijing.png') no-repeat center center fixed;
+            background-size: cover;
+            min-height: 100vh;
+            padding: 20px 16px 90px;
+            position: relative;
+            backdrop-filter: blur(1px);
+            /* 新增 flex 居中 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 半透明遮罩层，让文字更清晰 */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(255, 255, 255, 0.15);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* 主容器宽度自适应，配合body居中 */
+        .main-container {
+            max-width: 1400px;
+            width: 100%;           /* 保证在小屏也能撑开 */
+            margin: 0 auto;         /* 水平居中 (flex列中auto也有效) */
+            background-color: rgba(255, 255, 255, 0.82);
+            backdrop-filter: blur(12px);
+            border-radius: 36px;
+            padding: 28px 26px 32px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        /* 头部区域：标题 + 搜索按钮 */
+        .header-row {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        h1 {
+            font-size: 2.8rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: #1e293b;
+            text-shadow: 3px 3px 8px rgba(255,255,255,0.7);
+            word-break: break-word;
+        }
+
+        .search-btn {
+            background: #2c3e50;
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            border-radius: 48px;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.2);
+            cursor: pointer;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255,255,255,0.3);
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .search-btn:hover {
+            background: #1e2b38;
+            transform: scale(1.02);
+            box-shadow: 0 8px 18px rgba(0,0,0,0.25);
+        }
+
+        /* 专栏列表网格 */
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px 18px;
+        }
+
+        .category-card {
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(4px);
+            border-radius: 28px;
+            padding: 18px 16px 12px;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.05);
+            border: 1px solid rgba(255,255,255,0.9);
+            transition: all 0.15s;
+            height: fit-content;
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            border-bottom: 2px dashed #4a627a;
+            padding-bottom: 8px;
+        }
+
+        .category-title {
+            font-size: 1.7rem;
+            font-weight: 700;
+            color: #0b1e2c;
+            text-shadow: 1px 1px 2px white;
+        }
+
+        .toggle-btn {
+            background: #334e68;
+            border: none;
+            color: white;
+            font-weight: 600;
+            font-size: 1rem;
+            padding: 6px 16px;
+            border-radius: 40px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            cursor: pointer;
+            backdrop-filter: blur(4px);
+            border: 1px solid #ffffff70;
+            transition: 0.15s;
+            letter-spacing: 0.5px;
+        }
+
+        .toggle-btn:hover {
+            background: #1f3a4e;
+            transform: scale(0.98);
+        }
+
+        /* 网站列表 — 默认隐藏，展开后显示 */
+        .link-list {
+            list-style: none;
+            margin-top: 8px;
+            display: none;  /* 默认隐藏，点击展开后变为 block/flex */
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .category-card.expanded .link-list {
+            display: flex;
+        }
+
+        .link-item {
+            margin-left: 4px;
+        }
+
+        .link-item a {
+            display: inline-block;
+            background: rgba(240, 248, 255, 0.7);
+            padding: 8px 15px 8px 18px;
+            border-radius: 40px;
+            text-decoration: none;
+            font-weight: 550;
+            color: #103247;
+            font-size: 1.05rem;
+            backdrop-filter: blur(2px);
+            border: 1px solid #bdd3e8;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            transition: 0.1s;
+            width: 100%;
+            word-break: break-word;
+        }
+
+        .link-item a:hover {
+            background: #d9e6f5;
+            border-color: #2c5f8a;
+            color: #000;
+            transform: translateX(4px);
+            box-shadow: 0 6px 10px rgba(47, 91, 128, 0.15);
+        }
+
+        /* 底部返回按钮 */
+        .footer-return {
+            margin-top: 40px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .return-btn {
+            background: #1e3a5f;
+            color: white;
+            border: none;
+            font-size: 1.5rem;
+            font-weight: bold;
+            padding: 16px 50px;
+            border-radius: 60px;
+            box-shadow: 0 12px 20px rgba(0,0,0,0.2);
+            cursor: pointer;
+            backdrop-filter: blur(8px);
+            border: 2px solid #ffffffb0;
+            transition: 0.2s;
+            letter-spacing: 2px;
+        }
+
+        .return-btn:hover {
+            background: #0f2a44;
+            transform: translateY(-3px);
+            box-shadow: 0 18px 28px rgba(0,0,0,0.25);
+        }
+
+        /* ---------- 搜索页面样式 (独立) ---------- */
+        .search-container {
+            max-width: 1000px;
+            width: 100%;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(14px);
+            border-radius: 40px;
+            padding: 30px 28px 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.7);
+        }
+
+        .search-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .search-header h2 {
+            font-size: 2.2rem;
+            color: #14273e;
+            font-weight: 700;
+            text-shadow: 2px 2px 6px white;
+        }
+
+        /* 搜索输入区域：输入框 + 清空按钮 + 搜索按钮 */
+        .search-input-area {
+            display: flex;
+            flex: 2;
+            min-width: 260px;
+            gap: 8px;
+            align-items: center;
+        }
+
+        /* 输入框包装器，用于放置清空按钮（相对定位） */
+        .input-wrapper {
+            position: relative;
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        #searchInput {
+            width: 100%;
+            padding: 15px 40px 15px 18px;  /* 右侧留出空间给清空按钮 */
+            font-size: 1.2rem;
+            border: 2px solid #bfd7f0;
+            border-radius: 56px;
+            background: rgba(255,255,255,0.9);
+            outline: none;
+            backdrop-filter: blur(4px);
+        }
+
+        /* 清空按钮（叉号）样式 */
+        .clear-input-btn {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.3);
+            border: none;
+            color: white;
+            font-size: 1.3rem;
+            font-weight: bold;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: 0.2s;
+            backdrop-filter: blur(2px);
+            padding: 0;
+            line-height: 1;
+        }
+
+        .clear-input-btn:hover {
+            background: rgba(0, 0, 0, 0.55);
+            transform: translateY(-50%) scale(1.05);
+        }
+
+        #searchBtn {
+            background: #1e3a5f;
+            border: none;
+            color: white;
+            font-weight: bold;
+            font-size: 1.2rem;
+            padding: 0 30px;
+            border-radius: 56px;
+            cursor: pointer;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+            border: 1px solid white;
+            white-space: nowrap;
+        }
+
+        #searchResults {
+            margin: 28px 0 20px;
+            min-height: 160px;
+        }
+
+        .result-item {
+            background: #eef4fa;
+            margin-bottom: 10px;
+            padding: 12px 22px;
+            border-radius: 48px;
+            font-size: 1.2rem;
+            border-left: 8px solid #2c5f8a;
+        }
+
+        .result-item a {
+            text-decoration: none;
+            font-weight: 600;
+            color: #003057;
+            display: block;
+        }
+
+        .no-result {
+            font-size: 1.5rem;
+            color: #a12d2d;
+            background: #fff2f0;
+            padding: 20px 28px;
+            border-radius: 40px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        /* 搜索历史模块样式 */
+        .history-section {
+            margin-top: 15px;
+            border-top: 2px dashed #b3c7dd;
+            padding-top: 20px;
+        }
+
+        .history-header {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .history-header h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1f3f5c;
+            letter-spacing: 1px;
+        }
+
+        .clear-history-btn {
+            background: #9b2e2e;
+            color: white;
+            border: none;
+            padding: 6px 20px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 40px;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            border: 1px solid #f3bcbc;
+        }
+
+        .clear-history-btn:hover {
+            background: #751f1f;
+            transform: scale(0.97);
+        }
+
+        .history-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 280px;
+            overflow-y: auto;
+            padding-right: 6px;
+        }
+
+        .history-item {
+            background: rgba(240, 248, 255, 0.75);
+            border-radius: 50px;
+            padding: 6px 18px 6px 22px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            transition: 0.1s;
+            border: 1px solid #cce1f5;
+        }
+
+        .history-keyword {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #102b3f;
+            cursor: pointer;
+            background: none;
+            border: none;
+            text-align: left;
+            flex: 1;
+            padding: 8px 0;
+            font-family: inherit;
+        }
+
+        .history-keyword:hover {
+            color: #0056b3;
+            text-decoration: underline;
+        }
+
+        .history-delete {
+            background: #a15242;
+            border: none;
+            color: white;
+            font-size: 0.8rem;
+            padding: 6px 16px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: 0.1s;
+        }
+
+        .history-delete:hover {
+            background: #6e3527;
+        }
+
+        .empty-history {
+            background: #eef2f7;
+            padding: 14px 20px;
+            border-radius: 40px;
+            text-align: center;
+            color: #4f6f8f;
+            font-size: 1rem;
+        }
+
+        .search-footer {
+            display: flex;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        .back-to-main {
+            background: #1e3a5f;
+            color: white;
+            border: none;
+            font-size: 1.5rem;
+            font-weight: bold;
+            padding: 15px 45px;
+            border-radius: 60px;
+            cursor: pointer;
+            border: 2px solid #ffffffc0;
+        }
+
+        .hidden-page {
+            display: none !important;
+        }
+
+        /* 响应式 */
+        @media (max-width: 640px) {
+            h1 { font-size: 2.2rem; }
+            .main-container { padding: 20px 14px; }
+            .category-title { font-size: 1.5rem; }
+            .history-header h3 { font-size: 1.2rem; }
+            .clear-input-btn {
+                width: 24px;
+                height: 24px;
+                font-size: 1.1rem;
+                right: 10px;
+            }
+            #searchInput {
+                padding: 12px 36px 12px 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- ========= 主页面 (初始界面) ========= -->
+    <div id="mainPage">
+        <div class="main-container">
+            <div class="header-row">
+                <h1>实用网站检索</h1>
+                <button class="search-btn" id="goToSearchBtn">🔍 搜索</button>
+            </div>
+
+            <!-- 九个专栏动态生成 -->
+            <div class="category-grid" id="categoryGrid"></div>
+
+            <!-- 底部返回按钮 (跳转至指定链接) -->
+            <div class="footer-return">
+                <button class="return-btn" id="mainReturnBtn">返回</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========= 搜索页面 (新增叉号清空按钮) ========= -->
+    <div id="searchPage" class="hidden-page">
+        <div class="search-container">
+            <div class="search-header">
+                <h2>🔎 搜索网站</h2>
+                <div class="search-input-area">
+                    <!-- 包裹输入框和清空按钮 -->
+                    <div class="input-wrapper">
+                        <input type="text" id="searchInput" placeholder="输入关键词" autocomplete="off">
+                        <button class="clear-input-btn" id="clearInputBtn" title="清空输入框">✕</button>
+                    </div>
+                    <button id="searchBtn">搜索</button>
+                </div>
+            </div>
+            <div id="searchResults">
+                <!-- 动态渲染搜索结果 -->
+            </div>
+
+            <!-- 搜索历史区域 + 清空按钮 -->
+            <div class="history-section" id="historySection">
+                <div class="history-header">
+                    <h3>📜 搜索历史</h3>
+                    <button class="clear-history-btn" id="clearHistoryBtn">清空</button>
+                </div>
+                <div id="historyListContainer">
+                    <!-- 历史记录动态渲染 -->
+                </div>
+            </div>
+
+            <div class="search-footer">
+                <button class="back-to-main" id="backToMainFromSearch">返回</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function(){
+            "use strict";
+
+            // ---------- 所有网站数据 (分类与链接) ----------
+            const categoriesData = [
+                {
+                    name: "个人",
+                    links: [
+                        { title: "我的个人网站（主站）", url: "https://xvtang.netlify.app/" },
+                        { title: "我的个人网站（副站）", url: "https://xvtang.github.io/" },
+                        { title: "本人B站账号", url: "https://b23.tv/aRWyBml" },
+                        { title: "xvtang · GitHub", url: "https://github.com/xvtang" }
+                    ]
+                },
+                {
+                    name: "游戏",
+                    links: [
+                        { title: "MCJS", url: "https://mcjs.cc/" },
+                        { title: "我的世界", url: "https://eaglercraft.ir/zh/" },
+                        { title: "我的世界2", url: "https://eaglercraft.com/" },
+                        { title: "我的世界3", url: "https://eaglercraft.dev/" },
+                        { title: "我的世界4", url: "https://eaglercraft.app/" },
+                        { title: "4399", url: "https://www.4399.com/" },
+                        { title: "BBSMC-我的世界中文资源社区", url: "https://bbsmc.net/" },
+                        { title: "PCL2启动器下载", url: "https://pcl.ruanmao.net/" },
+                        { title: "PCL2官网", url: "https://pcl2.aoe.top/" },
+                        { title: "PCL2启动器官方仓库", url: "https://github.com/Meloong-Git/PCL" },
+                        { title: "HCML官网", url: "https://hmcl.huangyuhui.net/" },
+                        { title: "HCML官方仓库", url: "https://github.com/HMCL-dev/HMCL" },
+                        { title: "MC百科", url: "https://www.mcmod.cn/" },
+                        { title: "MC服务器", url: "https://aternos.org/:zh-CN/" },
+                        { title: "FCL下载站", url: "https://foldcraftlauncher.cn/" },
+                        { title: "FCL启动器官方仓库", url: "https://github.com/FCL-Team/FoldCraftLauncher" },
+                        { title: "MC基岩版下载", url: "https://bbk.endyun.ltd/download" },
+                        { title: "MC基岩版下载2", url: "https://mcapks.net/" },
+                        { title: "我的世界中文论坛", url: "https://www.minebbs.com/" },
+                        { title: "抖音小游戏合集", url: "https://flowus.cn/lygzs/share/c1632746-265e-4d1b-bdeb-7e4573b6e460" },
+                        { title: "我的世界-开发者内容管理", url: "https://mcdev.webapp.163.com/" }
+                    ]
+                },
+                {
+                    name: "娱乐",
+                    links: [
+                        { title: "毒蛇电影", url: "https://www.duse2.com/" },
+                        { title: "青听音乐下载", url: "https://github.com/kejichangqing/QingMusic" },
+                        { title: "白鲨影视下载（邀请码：Pt3qip1J，选填）", url: "https://dg100.vip/android.html" },
+                        { title: "橘汁影视下载", url: "https://juzhi999.app/" },
+                        { title: "星影视频下载（邀请码：FGPZ6R，选填）", url: "https://xysp.app/" },
+                        { title: "TvBox下载", url: "https://github.com/j4Uq/TVBoxOSC" },
+                        { title: "影视工具", url: "https://github.com/qist/tvbox" },
+                        { title: "豆瓣", url: "https://www.douban.com/" },
+                        { title: "笔趣阁下载", url: "https://www.bqgapp.cn/" },
+                        { title: "SaltyLeo的书架", url: "https://tstrs.me/" },
+                        { title: "哈利波特小说下载", url: "http://wwbww.zizi2.com/b01bjnkp2d" },
+                        { title: "名侦探柯南漫画下载", url: "https://share.feijipan.com/s/UV8NV6vY" },
+                        { title: "黑猫视频解析", url: "https://vip.heimaokeji.xyz/" },
+                        { title: "Zlibrary发布页", url: "https://zlibrary.me/" }
+
+
+                    ]
+                },
+                {
+                    name: "快传",
+                    links: [
+                        { title: "文件快传", url: "https://fileup.cn/" },
+                        { title: "文件快传2", url: "https://easychuan.cn/" },
+                        { title: "文件快传3", url: "https://lingdaima.com/file/" },
+                        { title: "文件快传4", url: "https://www.haioukc.com/" },
+                        { title: "文件快传5", url: "https://upfile.live/zh-cn/" }
+                    ]
+                },
+                {
+                    name: "推荐",
+                    links: [
+                        { title: "移除付费墙", url: "https://paywallbuster.com/" },
+                        { title: "兑兑通", url: "https://ddt.you.duiyoudanbao.cn/" },
+                        { title: "小天才破解（部分可用）", url: "https://xtc-code.onesoft.top/" },
+                        { title: "海搜", url: "https://haisou.cc/" },
+                        { title: "AIX智能下载器", url: "https://aixdownloader.com/zh/" },
+                        { title: "GitHub", url: "https://github.com/" },
+                        { title: "Netlify", url: "https://www.netlify.com/" },
+                        { title: "办公效率工具导航", url: "https://jiafangbb.com/" },
+                        { title: "Watt加速器", url: "https://steampp.net/" },
+                        { title: "网易邮箱", url: "https://email.163.com/" },
+                        { title: "BrowseHere电视浏览器", url: "https://browsehere.net/zh/" },
+                        { title: "国家中小学智慧教育平台", url: "https://basic.smart.edu.cn/" },
+                        { title: "微软", url: "https://www.microsoft.com/zh-cn" },
+                        { title: "网易账号安全中心", url: "https://id.163.com/" },
+                        { title: "Cloudflare", url: "https://dash.cloudflare.com/" },
+                        { title: "广告拦截插件", url: "https://adguard.info/zh_cn/" },
+                        { title: "域名查询", url: "https://whois.aliyun.com/" },
+                        { title: "在线网页编辑器", url: "https://htmlpage.cn/" },
+                        { title: "infinityfree", url: "https://www.infinityfree.com/" },
+                        { title: "在线PDF编辑", url: "https://smallpdf.com/cn" },
+                        { title: "甲壳虫ADB助手", url: "https://github.com/didjdk/adbhelper" },
+                        { title: "Coji浏览器", url: "https://github.com/MVLStudio/cojibrowser" },
+                        { title: "MuMu模拟器", url: "https://mumu.163.com/" },
+                        { title: "WebCat-手机端Web编辑器", url: "https://webcat.top/" },
+                        { title: "MT管理器", url: "https://mt2.cn/" },
+                        { title: "7-Zip中文站", url: "https://sparanoid.com/lab/7z/" },
+                        { title: "7-Zip中文仓库", url: "https://github.com/sparanoid/7z" },
+                        { title: "7-Zip官网", url: "https://www.7-zip.org/" },
+                        { title: "7-Zip官方仓库", url: "https://github.com/ip7z/7zip" },
+                        { title: "视频加速插件", url: "https://github.com/polywock/globalSpeed" },
+                        { title: "网站转应用工具", url: "https://toapp.website/" },
+                        { title: "Outlook", url: "https://www.outlook.com" },
+                        { title: "dnshe", url: "https://www.dnshe.com/" },
+                        { title: "Nrfr下载", url: "https://github.com/Ackites/Nrfr" },
+                        { title: "Shizuku", url: "https://github.com/RikkaApps/Shizuku" },
+                        { title: "实用应用下载", url: "https://xyt012.lanzouq.com/b01bjj2qgb" },           
+                        { title: "luckman补给营地", url: "https://luckman.ysepan.com/" }
+        ]
+                },
+                {
+                    name: "提取转换与解析",
+                    links: [
+                        { title: "免费图床", url: "https://www.hd-r.cn/" },
+                        { title: "图片转链接", url: "https://img.remit.ee/" },
+                        { title: "短视频无水印解析工具", url: "https://wwwv2ob.com/" },
+                        { title: "在线二维码生成器", url: "https://tuzim.net/" },
+                        { title: "UU在线工具", url: "https://uutool.cn/" },
+                        { title: "二维码扫描", url: "https://qr-code-scanner.io/zh" },
+                        { title: "文件转换器", url: "https://cloudconvert.com/" },
+                        { title: "GitHub文件下载加速1", url: "https://gh-proxy.com/" },
+                        { title: "GitHub文件下载加速2", url: "https://github.akams.cn/" },
+                        { title: "GitHub文件下载加速3", url: "https://ghproxy.net/" }
+                    ]
+                },
+                {
+                    name: "网盘",
+                    links: [
+                        { title: "PanDownload", url: "http://pandownload.net/" },
+                        { title: "蓝奏云优享版", url: "https://www.lanzou.com" },
+                        { title: "蓝奏·云存储", url: "https://www.lanzou.com/" },
+                        { title: "轻量级简易网盘webd", url: "https://github.com/webd90kb/webd" }
+                    ]
+                },
+                {
+                    name: "AI",
+                    links: [
+                        { title: "豆包", url: "https://www.doubao.com/" },
+                        { title: "DeepSeek", url: "https://www.deepseek.com/" },
+                        { title: "OpenClaw-Personal AI Assistant", url: "https://openclaw.ai/" },
+                        { title: "OpenClaw 2", url: "https://docs.openclaw.ai/zh-CN" },
+                        { title: "ClawHub", url: "https://clawhub.ai/" }
+                    ]
+                },
+                {
+                    name: "查找手机",
+                    links: [
+                        { title: "荣耀查找手机", url: "https://cloud.hihonor.com/" },
+                        { title: "华为查找手机", url: "https://cloud.huawei.com/" }
+                    ]
+                }
+            ];
+
+            // 获取本地存储的历史记录 (数组存储搜索关键词，保留顺序，最近搜索在上方或按照添加顺序)
+            let searchHistory = [];
+            const STORAGE_KEY = 'website_search_history';
+
+            function loadHistory() {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (stored) {
+                    try {
+                        searchHistory = JSON.parse(stored);
+                        if (!Array.isArray(searchHistory)) searchHistory = [];
+                    } catch(e) { searchHistory = []; }
+                } else {
+                    searchHistory = [];
+                }
+                renderHistory();
+            }
+
+            function saveHistory() {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(searchHistory));
+            }
+
+            function addSearchKeyword(keyword) {
+                if (!keyword || keyword.trim() === '') return;
+                const trimmed = keyword.trim();
+                const index = searchHistory.indexOf(trimmed);
+                if (index !== -1) {
+                    searchHistory.splice(index, 1);
+                }
+                searchHistory.push(trimmed);
+                const MAX_HISTORY = 20;
+                if (searchHistory.length > MAX_HISTORY) {
+                    searchHistory = searchHistory.slice(-MAX_HISTORY);
+                }
+                saveHistory();
+                renderHistory();
+            }
+
+            function deleteHistoryItem(keyword) {
+                const idx = searchHistory.indexOf(keyword);
+                if (idx !== -1) {
+                    searchHistory.splice(idx, 1);
+                    saveHistory();
+                    renderHistory();
+                }
+            }
+
+            function clearAllHistory() {
+                searchHistory = [];
+                saveHistory();
+                renderHistory();
+            }
+
+            function renderHistory() {
+                const container = document.getElementById('historyListContainer');
+                if (!container) return;
+                if (searchHistory.length === 0) {
+                    container.innerHTML = '<div class="empty-history">✨ 暂无搜索历史，试试搜索一些网站吧</div>';
+                    return;
+                }
+                const reversedHistory = [...searchHistory].reverse();
+                let html = '<ul class="history-list">';
+                reversedHistory.forEach(keyword => {
+                    const safeKeyword = keyword.replace(/[&<>]/g, function(m) {
+                        if (m === '&') return '&amp;';
+                        if (m === '<') return '&lt;';
+                        if (m === '>') return '&gt;';
+                        return m;
+                    });
+                    html += `
+                        <li class="history-item">
+                            <button class="history-keyword" data-keyword="${safeKeyword}">🔍 ${safeKeyword}</button>
+                            <button class="history-delete" data-keyword="${safeKeyword}">删除</button>
+                        </li>
+                    `;
+                });
+                html += '</ul>';
+                container.innerHTML = html;
+
+                document.querySelectorAll('.history-keyword').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const kw = btn.getAttribute('data-keyword');
+                        if (kw) {
+                            searchInput.value = kw;
+                            performSearch();
+                        }
+                    });
+                });
+                document.querySelectorAll('.history-delete').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const kw = btn.getAttribute('data-keyword');
+                        if (kw) {
+                            deleteHistoryItem(kw);
+                        }
+                    });
+                });
+            }
+
+            const grid = document.getElementById('categoryGrid');
+            function renderCategories() {
+                let html = '';
+                categoriesData.forEach(cat => {
+                    html += `<div class="category-card" data-category="${cat.name}">`;
+                    html += `<div class="category-header">`;
+                    html += `<span class="category-title">${cat.name}</span>`;
+                    html += `<button class="toggle-btn">展开</button>`;
+                    html += `</div>`;
+                    html += `<ul class="link-list">`;
+                    cat.links.forEach(link => {
+                        html += `<li class="link-item"><a href="${link.url}" target="_blank" rel="noopener">${link.title}</a></li>`;
+                    });
+                    html += `</ul>`;
+                    html += `</div>`;
+                });
+                grid.innerHTML = html;
+
+                document.querySelectorAll('.category-card').forEach(card => {
+                    const btn = card.querySelector('.toggle-btn');
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const isExpanded = card.classList.contains('expanded');
+                        if (isExpanded) {
+                            card.classList.remove('expanded');
+                            btn.textContent = '展开';
+                        } else {
+                            card.classList.add('expanded');
+                            btn.textContent = '收起';
+                        }
+                    });
+                });
+            }
+            renderCategories();
+
+            document.getElementById('mainReturnBtn').addEventListener('click', () => {
+                window.location.href = 'index.html';
+            });
+
+            const mainPage = document.getElementById('mainPage');
+            const searchPage = document.getElementById('searchPage');
+            const goToSearchBtn = document.getElementById('goToSearchBtn');
+            const backToMainFromSearch = document.getElementById('backToMainFromSearch');
+
+            // 路由控制函数：根据 hash 显示对应页面
+            function routeByHash() {
+                const hash = window.location.hash;
+                if (hash === '#/search') {
+                    // 显示搜索页，隐藏主页
+                    mainPage.classList.add('hidden-page');
+                    searchPage.classList.remove('hidden-page');
+                    // 每次进入搜索页重新渲染历史，保持最新状态
+                    renderHistory();
+                    // 可选：清空之前残留的搜索结果（和原始行为一致，仅保持历史展示，不做额外清理）
+                } else {
+                    // 其他 hash 或无 hash 时显示主页
+                    mainPage.classList.remove('hidden-page');
+                    searchPage.classList.add('hidden-page');
+                }
+            }
+
+            // 修改搜索按钮点击事件：设置 hash 为 #/search
+            if (goToSearchBtn) {
+                goToSearchBtn.addEventListener('click', () => {
+                    window.location.hash = '#/search';
+                });
+            }
+
+            // 修改“返回”按钮（搜索页底部）点击事件：清空 hash 回到主页
+            if (backToMainFromSearch) {
+                backToMainFromSearch.addEventListener('click', () => {
+                    window.location.hash = '';
+                });
+            }
+
+            // 监听 hash 变化（包括初始加载和前进后退）
+            window.addEventListener('hashchange', routeByHash);
+            // 初始加载时根据当前 hash 执行一次路由
+            routeByHash();
+
+            const searchInput = document.getElementById('searchInput');
+            const searchBtn = document.getElementById('searchBtn');
+            const resultsDiv = document.getElementById('searchResults');
+            // 获取清空按钮
+            const clearInputBtn = document.getElementById('clearInputBtn');
+
+            function getAllLinksFlat() {
+                const flat = [];
+                categoriesData.forEach(cat => {
+                    cat.links.forEach(link => {
+                        flat.push({ title: link.title, url: link.url, category: cat.name });
+                    });
+                });
+                return flat;
+            }
+            const allLinks = getAllLinksFlat();
+
+            function performSearch() {
+                const keyword = searchInput.value.trim();
+                if (keyword === '') {
+                    resultsDiv.innerHTML = '<div class="no-result">请输入关键词</div>';
+                    return;
+                }
+                addSearchKeyword(keyword);
+                
+                const lowerKeyword = keyword.toLowerCase();
+                const titleMatched = allLinks.filter(item => item.title.toLowerCase().includes(lowerKeyword));
+                
+                if (titleMatched.length === 0) {
+                    resultsDiv.innerHTML = '<div class="no-result">未找到该网站</div>';
+                    return;
+                }
+
+                let resultsHtml = '';
+                titleMatched.forEach(item => {
+                    resultsHtml += `<div class="result-item"><a href="${item.url}" target="_blank" rel="noopener">${item.title}</a></div>`;
+                });
+                resultsDiv.innerHTML = resultsHtml;
+            }
+
+            // 清空输入框功能 (叉号点击)
+            if (clearInputBtn) {
+                clearInputBtn.addEventListener('click', () => {
+                    searchInput.value = '';
+                    searchInput.focus();
+                    // 注：为了纯粹仅清空文字，不对搜索结果做任何操作。
+                });
+            }
+
+            const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+            if (clearHistoryBtn) {
+                clearHistoryBtn.addEventListener('click', () => {
+                    clearAllHistory();
+                });
+            }
+
+            searchBtn.addEventListener('click', performSearch);
+            searchInput.addEventListener('keypress', (e) => {
+                if(e.key === 'Enter') {
+                    performSearch();
+                }
+            });
+
+            loadHistory();
+        })();
+    </script>
+</body>
+</html>
